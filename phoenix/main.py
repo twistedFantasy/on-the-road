@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Giver")
+app = FastAPI(title="phoenix")
 
 BACKEND_CORS_ORIGINS = []
 

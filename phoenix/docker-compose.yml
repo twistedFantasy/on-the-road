@@ -9,7 +9,7 @@ volumes:
   redis-data:
 
 services:
-  giver:
+  phoenix:
     build:
       context: ./
       dockerfile: ./Dockerfile
@@ -17,10 +17,11 @@ services:
       - bash
       - -c
       - |
-        uvicorn --host=0.0.0.0 --app-dir=/usr/src/giver/ main:app --reload
+        alembic upgrade head
+        uvicorn --host=0.0.0.0 --app-dir=/usr/src/phoenix/ main:app --reload
     restart: on-failure
     env_file:
-      - local/giver.env
+      - local/phoenix.env
       - local/postgres.env
     ports:
       - target: 8000
@@ -28,10 +29,12 @@ services:
         protocol: tcp
         mode: host
     volumes:
-      - ./:/usr/src/giver/
+      - ./:/usr/src/phoenix/
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - network
 
@@ -39,6 +42,11 @@ services:
     image: "postgres:14.3-alpine"
     env_file:
       - local/postgres.env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - target: 5432
         published: 5532
@@ -51,6 +59,11 @@ services:
 
   redis:
     image: "redis:7.0.0-alpine"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
     volumes:
       - redis-data:/data
     networks:
